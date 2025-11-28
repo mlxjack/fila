@@ -5,6 +5,31 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Sistema de Fila de Vendas</title>
     <link rel="stylesheet" href="style.css" />
+    <style>
+      /* Ajuste extra para garantir que a tabela apareça bonita */
+      table {
+        width: 100%;
+        border-collapse: collapse;
+        margin-top: 10px;
+        background: white;
+        border-radius: 4px;
+        overflow: hidden;
+      }
+      th, td {
+        padding: 10px;
+        text-align: left;
+        border-bottom: 1px solid #eee;
+        font-size: 14px;
+      }
+      th {
+        background-color: #f4f4f4;
+        font-weight: bold;
+        color: #555;
+      }
+      td {
+        color: #333;
+      }
+    </style>
   </head>
   <body>
     <div id="login-screen" class="screen">
@@ -30,7 +55,7 @@
           <h2>Fila WhatsApp</h2>
           <div class="current-turn">
             <span class="label">Vez da vendedora:</span>
-            <span id="whatsapp-current" class="current-name">Dani</span>
+            <span id="whatsapp-current" class="current-name">...</span>
           </div>
           <button class="next-button" data-queue="whatsapp">Pular vez (Sem Venda)</button>
 
@@ -56,7 +81,17 @@
 
           <div class="history">
             <h3>Últimos atendimentos</h3>
-            <tbody id="whatsapp-history"></tbody>
+            <table>
+              <thead>
+                <tr>
+                  <th style="width: 25%">Data</th>
+                  <th style="width: 15%">Vend.</th>
+                  <th style="width: 20%">Cliente</th>
+                  <th style="width: 40%">Obs</th>
+                </tr>
+              </thead>
+              <tbody id="whatsapp-history"></tbody>
+            </table>
           </div>
         </section>
 
@@ -64,7 +99,7 @@
           <h2>Fila de Clientes do Site</h2>
           <div class="current-turn">
             <span class="label">Vez da vendedora:</span>
-            <span id="site-current" class="current-name">Dani</span>
+            <span id="site-current" class="current-name">...</span>
           </div>
           <button class="next-button" data-queue="site">Pular vez (Sem Venda)</button>
 
@@ -90,7 +125,17 @@
 
           <div class="history">
             <h3>Últimos atendimentos</h3>
-            <tbody id="site-history"></tbody>
+            <table>
+              <thead>
+                <tr>
+                  <th style="width: 25%">Data</th>
+                  <th style="width: 15%">Vend.</th>
+                  <th style="width: 20%">Cliente</th>
+                  <th style="width: 40%">Obs</th>
+                </tr>
+              </thead>
+              <tbody id="site-history"></tbody>
+            </table>
           </div>
         </section>
       </main>
@@ -98,8 +143,8 @@
 
     <script>
       // =========================================================
-      // COLOQUE AQUI A URL DO SEU SCRIPT (VERIFIQUE PASSO 1)
-      const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbxbCRpw3P0a113lK0fnVpFmj_WfysRhwhOOwpFTrFZODkBY4Urs7Ykbz8r1YbrRejr3Dg/exec"; 
+      // IMPORTANTE: MANTENHA O SEU LINK QUE JÁ ESTÁ FUNCIONANDO
+      const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbxtaofLwaa2pEW24Epl5XoC93osJhn3PGv-mQNBRdMD4aTYwswFDZwbfOnHpho07UMhEg/exec"; 
       // =========================================================
 
       const vendedoras = ["Dani", "Talita", "Renata"];
@@ -162,9 +207,7 @@
           });
         });
         
-        // Atualiza interface inicial
         updateUI();
-        // Sincroniza a cada 5 segundos
         setInterval(fetchData, 5000);
       });
 
@@ -197,7 +240,6 @@
           
           const data = await res.json();
           
-          // Se tiver erro no JSON
           if(data.result === "Error") {
              console.error("Erro no script:", data.error);
              return;
@@ -207,7 +249,7 @@
           globalState.siteIndex = parseInt(data.state.siteIndex) || 0;
           globalState.history = data.history || [];
           
-          els.status.style.display = 'none'; // Esconde carregando se deu certo
+          els.status.style.display = 'none';
           updateUI();
         } catch (e) {
           console.error("Erro ao sincronizar:", e);
@@ -232,24 +274,23 @@
           ...formData
         };
 
-        // Atualização Otimista (Muda na tela antes de ir pro servidor)
         advanceQueueLocally(queueType);
 
         try {
             await fetch(SCRIPT_URL, {
               method: 'POST',
-              mode: 'no-cors', // Importante para enviar sem erro de bloqueio
+              mode: 'no-cors',
               headers: { 'Content-Type': 'application/json' },
               body: JSON.stringify(payload)
             });
             
-            setTimeout(fetchData, 1500); // Força atualização após salvar
+            setTimeout(fetchData, 1500); 
             els.status.textContent = "Salvo!";
             setTimeout(() => els.status.style.display = 'none', 2000);
 
         } catch (e) {
             alert("Erro ao salvar. Verifique se a planilha está acessível.");
-            fetchData(); // Reverte se der erro
+            fetchData();
         }
       }
 
@@ -277,7 +318,6 @@
         if (isNaN(currentIndex)) currentIndex = 0;
         const qEls = els.queues[queue];
         
-        // Proteção contra índice inválido
         const nomeVendedora = vendedoras[currentIndex] || vendedoras[0];
         qEls.current.textContent = nomeVendedora;
         
@@ -303,12 +343,20 @@
             if (filaItem === 'site') targetBody = els.queues.site.tbody;
 
             if (targetBody) {
+                // Formatação simples da data para ficar bonita
+                let displayDate = item.datahora;
+                try {
+                    const d = new Date(item.datahora);
+                    if(!isNaN(d)) {
+                        displayDate = d.toLocaleString('pt-BR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute:'2-digit' });
+                    }
+                } catch(e) {}
+
                 const tr = document.createElement("tr");
                 tr.innerHTML = `
-                    <td>${item.datahora}</td>
+                    <td>${displayDate}</td>
                     <td>${item.vendedora}</td>
                     <td>${item.cliente}</td>
-                    <td>${item.contato}</td>
                     <td>${item.observacao}</td>
                 `;
                 targetBody.appendChild(tr); 
