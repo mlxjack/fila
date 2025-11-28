@@ -235,7 +235,7 @@ function formatDate(date) {
 
 // URL do Apps Script implantado (substitua pela URL apropriada)
 const scriptURL =
-  'https://script.google.com/macros/s/AKfycbxJz3E6oQWX7eMPOha4cwcJ6RSLgTUZzEcDmSZB8D4Nwka5q-3TGd1Z46pMgKHFuaGV/exec';
+  'https://script.google.com/macros/s/AKfycbw8qfhJKKt4vYdFoUHUn0AVqTl9KVDrLRqF5xzYLGFYqSRslDcMXraAoGb6ekR4R6nR/exec';
 
 /**
  * Envia os dados de atendimento para a planilha Google através do Apps Script.
