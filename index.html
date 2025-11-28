@@ -126,8 +126,8 @@
 
     <!-- Script incorporado para evitar problemas de cache -->
     <script>
-      // Nome das vendedoras em ordem
-      const vendedoras = ["Dani", "Renata", "Talita"];
+      // Nome das vendedoras em ordem (Dani, Talita, Renata)
+      const vendedoras = ["Dani", "Talita", "Renata"];
 
       // Senha de acesso
       const PASSWORD = "equipedevendas";
@@ -302,6 +302,9 @@
         renderHistory(queue);
         // Após registrar, avança automaticamente para a próxima vendedora
         advanceQueue(queue);
+
+        // Envia os dados para a planilha do Google via Apps Script
+        saveToSheet(queue, atendimento);
       }
 
       // Renderiza a tabela de histórico da fila
@@ -320,6 +323,35 @@
             <td>${item.observacao || ""}</td>
           `;
           tbody.appendChild(tr);
+        });
+      }
+
+      // URL do script do Google Apps Script (substitua pela URL do seu script implantado)
+      // URL do Apps Script implantado fornecido pelo usuário
+      const scriptURL = 'https://script.google.com/macros/s/AKfycbxJz3E6oQWX7eMPOha4cwcJ6RSLgTUZzEcDmSZB8D4Nwka5q-3TGd1Z46pMgKHFuaGV/exec';
+
+      // Envia os atendimentos para a planilha Google via fetch
+      function saveToSheet(queue, atendimento) {
+        // Inclui a fila no payload para identificar qual fila (whatsapp ou site)
+        const payload = {
+          fila: queue,
+          dataHora: atendimento.dataHora,
+          vendedora: atendimento.vendedora,
+          cliente: atendimento.cliente,
+          contato: atendimento.contato,
+          observacao: atendimento.observacao,
+        };
+        if (!scriptURL || scriptURL.startsWith('COLE_AQUI')) {
+          // Se a URL não foi configurada, não envia
+          return;
+        }
+        fetch(scriptURL, {
+          method: 'POST',
+          mode: 'no-cors',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload),
+        }).catch((err) => {
+          console.error('Erro ao enviar dados para a planilha', err);
         });
       }
 
