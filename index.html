@@ -1,0 +1,337 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Sistema de Fila de Vendas</title>
+    <link rel="stylesheet" href="style.css" />
+  </head>
+  <body>
+    <!-- Tela de Login -->
+    <div id="login-screen" class="screen">
+      <div class="login-container">
+        <h1>Bem-vinda</h1>
+        <p>Digite a senha para acessar o sistema:</p>
+        <input
+          type="password"
+          id="password-input"
+          placeholder="Senha"
+          autocomplete="off"
+        />
+        <button id="login-button">Entrar</button>
+        <div id="login-error" class="error"></div>
+      </div>
+    </div>
+
+    <!-- Tela Principal -->
+    <div id="app-screen" class="screen hidden">
+      <header>
+        <h1>Sistema de Fila de Vendas</h1>
+        <button id="logout-button" class="logout-button">Sair</button>
+      </header>
+      <main>
+        <!-- Fila de WhatsApp -->
+        <section class="queue-section" id="whatsapp-queue">
+          <h2>Fila WhatsApp</h2>
+          <div class="current-turn">
+            <span class="label">Vez da vendedora:</span>
+            <span id="whatsapp-current" class="current-name"></span>
+          </div>
+          <button class="next-button" data-queue="whatsapp">Próximo</button>
+
+          <div class="order-list">
+            <h3>Ordem das vendedoras</h3>
+            <ul id="whatsapp-order"></ul>
+          </div>
+
+          <div class="register-form">
+            <h3>Registrar atendimento</h3>
+            <form id="whatsapp-form">
+              <label for="cliente-whatsapp">Nome do cliente</label>
+              <input type="text" id="cliente-whatsapp" name="cliente" required />
+
+              <label for="contato-whatsapp">Contato</label>
+              <input type="text" id="contato-whatsapp" name="contato" required />
+
+              <label for="observacao-whatsapp">Observação</label>
+              <textarea id="observacao-whatsapp" name="observacao" rows="2"></textarea>
+              <button type="submit">Registrar</button>
+            </form>
+          </div>
+
+          <div class="history">
+            <h3>Atendimentos registrados</h3>
+            <table>
+              <thead>
+                <tr>
+                  <th>Data/Hora</th>
+                  <th>Vendedora</th>
+                  <th>Cliente</th>
+                  <th>Contato</th>
+                  <th>Observação</th>
+                </tr>
+              </thead>
+              <tbody id="whatsapp-history"></tbody>
+            </table>
+          </div>
+        </section>
+
+        <!-- Fila de Clientes do Site -->
+        <section class="queue-section" id="site-queue">
+          <h2>Fila de Clientes do Site</h2>
+          <div class="current-turn">
+            <span class="label">Vez da vendedora:</span>
+            <span id="site-current" class="current-name"></span>
+          </div>
+          <button class="next-button" data-queue="site">Próximo</button>
+
+          <div class="order-list">
+            <h3>Ordem das vendedoras</h3>
+            <ul id="site-order"></ul>
+          </div>
+
+          <div class="register-form">
+            <h3>Registrar atendimento</h3>
+            <form id="site-form">
+              <label for="cliente-site">Nome do cliente</label>
+              <input type="text" id="cliente-site" name="cliente" required />
+
+              <label for="contato-site">Contato</label>
+              <input type="text" id="contato-site" name="contato" required />
+
+              <label for="observacao-site">Observação</label>
+              <textarea id="observacao-site" name="observacao" rows="2"></textarea>
+              <button type="submit">Registrar</button>
+            </form>
+          </div>
+
+          <div class="history">
+            <h3>Atendimentos registrados</h3>
+            <table>
+              <thead>
+                <tr>
+                  <th>Data/Hora</th>
+                  <th>Vendedora</th>
+                  <th>Cliente</th>
+                  <th>Contato</th>
+                  <th>Observação</th>
+                </tr>
+              </thead>
+              <tbody id="site-history"></tbody>
+            </table>
+          </div>
+        </section>
+      </main>
+    </div>
+
+    <!-- Script incorporado para evitar problemas de cache -->
+    <script>
+      // Nome das vendedoras em ordem
+      const vendedoras = ["Dani", "Renata", "Talita"];
+
+      // Senha de acesso
+      const PASSWORD = "equipedevendas";
+
+      // Elementos DOM
+      const loginScreen = document.getElementById("login-screen");
+      const appScreen = document.getElementById("app-screen");
+      const passwordInput = document.getElementById("password-input");
+      const loginButton = document.getElementById("login-button");
+      const loginError = document.getElementById("login-error");
+      const logoutButton = document.getElementById("logout-button");
+
+      // Queue elements
+      const queueElements = {
+        whatsapp: {
+          current: document.getElementById("whatsapp-current"),
+          orderList: document.getElementById("whatsapp-order"),
+          historyBody: document.getElementById("whatsapp-history"),
+          form: document.getElementById("whatsapp-form"),
+        },
+        site: {
+          current: document.getElementById("site-current"),
+          orderList: document.getElementById("site-order"),
+          historyBody: document.getElementById("site-history"),
+          form: document.getElementById("site-form"),
+        },
+      };
+
+      // Inicialização
+      document.addEventListener("DOMContentLoaded", () => {
+        // Verifica se o usuário já está logado
+        if (localStorage.getItem("loggedIn") === "true") {
+          showApp();
+        } else {
+          showLogin();
+        }
+
+        // Eventos de login
+        loginButton.addEventListener("click", handleLogin);
+        passwordInput.addEventListener("keypress", (e) => {
+          if (e.key === "Enter") {
+            handleLogin();
+          }
+        });
+
+        // Evento de logout
+        logoutButton.addEventListener("click", () => {
+          localStorage.removeItem("loggedIn");
+          location.reload();
+        });
+
+        // Eventos das filas
+        document.querySelectorAll(".next-button").forEach((btn) => {
+          btn.addEventListener("click", () => {
+            const queue = btn.dataset.queue;
+            advanceQueue(queue);
+          });
+        });
+
+        // Eventos dos formulários
+        Object.keys(queueElements).forEach((queue) => {
+          const form = queueElements[queue].form;
+          form.addEventListener("submit", (e) => {
+            e.preventDefault();
+            registerAtendimento(queue);
+          });
+        });
+      });
+
+      function handleLogin() {
+        const value = passwordInput.value.trim();
+        if (value === PASSWORD) {
+          localStorage.setItem("loggedIn", "true");
+          passwordInput.value = "";
+          loginError.textContent = "";
+          showApp();
+        } else {
+          loginError.textContent = "Senha incorreta. Tente novamente.";
+          passwordInput.value = "";
+        }
+      }
+
+      // Exibe a tela de login
+      function showLogin() {
+        loginScreen.classList.remove("hidden");
+        appScreen.classList.add("hidden");
+      }
+
+      // Exibe a tela principal e inicializa dados
+      function showApp() {
+        loginScreen.classList.add("hidden");
+        appScreen.classList.remove("hidden");
+        initQueues();
+      }
+
+      // Inicializa as filas (ordem, posição atual e histórico)
+      function initQueues() {
+        // Para cada fila, certifique-se de que existem chaves de índice e histórico
+        ["whatsapp", "site"].forEach((queue) => {
+          if (!localStorage.getItem(`${queue}Index`)) {
+            localStorage.setItem(`${queue}Index`, "0");
+          }
+          if (!localStorage.getItem(`${queue}History`)) {
+            localStorage.setItem(`${queue}History`, JSON.stringify([]));
+          }
+          renderQueue(queue);
+          renderHistory(queue);
+        });
+      }
+
+      // Avança para a próxima vendedora na fila
+      function advanceQueue(queue) {
+        const indexKey = `${queue}Index`;
+        let currentIndex = parseInt(localStorage.getItem(indexKey), 10);
+        currentIndex = (currentIndex + 1) % vendedoras.length;
+        localStorage.setItem(indexKey, currentIndex.toString());
+        renderQueue(queue);
+      }
+
+      // Renderiza o estado atual da fila (vendedora da vez e ordem)
+      function renderQueue(queue) {
+        const currentIndex = parseInt(localStorage.getItem(`${queue}Index`), 10);
+        const elements = queueElements[queue];
+        // Atualiza a vendedora da vez
+        elements.current.textContent = vendedoras[currentIndex];
+        // Renderiza a lista com destaque para a atual
+        elements.orderList.innerHTML = "";
+        vendedoras.forEach((nome, idx) => {
+          const li = document.createElement("li");
+          li.textContent = nome;
+          if (idx === currentIndex) {
+            li.classList.add("current");
+          }
+          elements.orderList.appendChild(li);
+        });
+      }
+
+      // Registra um atendimento e salva no histórico da fila
+      function registerAtendimento(queue) {
+        const index = parseInt(localStorage.getItem(`${queue}Index`), 10);
+        const vendedora = vendedoras[index];
+        // Recupere os valores dos campos a partir de IDs exclusivos para cada fila.
+        let cliente = '';
+        let contato = '';
+        let observacao = '';
+        if (queue === 'whatsapp') {
+          cliente = (document.getElementById('cliente-whatsapp').value || '').trim();
+          contato = (document.getElementById('contato-whatsapp').value || '').trim();
+          observacao = (document.getElementById('observacao-whatsapp').value || '').trim();
+        } else if (queue === 'site') {
+          cliente = (document.getElementById('cliente-site').value || '').trim();
+          contato = (document.getElementById('contato-site').value || '').trim();
+          observacao = (document.getElementById('observacao-site').value || '').trim();
+        }
+        const dataHora = formatDate(new Date());
+        // Cria o objeto do atendimento
+        const atendimento = {
+          dataHora,
+          vendedora,
+          cliente,
+          contato,
+          observacao,
+        };
+        // Recupera histórico, adiciona e salva
+        const historyKey = `${queue}History`;
+        const history = JSON.parse(localStorage.getItem(historyKey));
+        history.unshift(atendimento); // adiciona no início
+        localStorage.setItem(historyKey, JSON.stringify(history));
+        // Limpa o formulário
+        queueElements[queue].form.reset();
+        // Atualiza a tabela
+        renderHistory(queue);
+        // Após registrar, avança automaticamente para a próxima vendedora
+        advanceQueue(queue);
+      }
+
+      // Renderiza a tabela de histórico da fila
+      function renderHistory(queue) {
+        const historyKey = `${queue}History`;
+        const history = JSON.parse(localStorage.getItem(historyKey));
+        const tbody = queueElements[queue].historyBody;
+        tbody.innerHTML = "";
+        history.forEach((item) => {
+          const tr = document.createElement("tr");
+          tr.innerHTML = `
+            <td>${item.dataHora}</td>
+            <td>${item.vendedora}</td>
+            <td>${item.cliente}</td>
+            <td>${item.contato}</td>
+            <td>${item.observacao || ""}</td>
+          `;
+          tbody.appendChild(tr);
+        });
+      }
+
+      // Formata uma data para DD/MM/YYYY HH:MM
+      function formatDate(date) {
+        const day = String(date.getDate()).padStart(2, '0');
+        const month = String(date.getMonth() + 1).padStart(2, '0');
+        const year = date.getFullYear();
+        const hours = String(date.getHours()).padStart(2, '0');
+        const minutes = String(date.getMinutes()).padStart(2, '0');
+        return `${day}/${month}/${year} ${hours}:${minutes}`;
+      }
+    </script>
+  </body>
+</html>
