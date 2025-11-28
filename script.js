@@ -1,7 +1,7 @@
 // script.js
 
-// Nome das vendedoras em ordem
-const vendedoras = ["Dani", "Renata", "Talita"];
+// Nome das vendedoras em ordem (Dani, Talita, Renata)
+const vendedoras = ["Dani", "Talita", "Renata"];
 
 // Senha de acesso
 const PASSWORD = "equipedevendas";
@@ -110,6 +110,20 @@ function initQueues() {
     renderQueue(queue);
     renderHistory(queue);
   });
+
+  // Carrega o histórico da planilha Google, caso disponível
+  loadHistoryFromSheet();
+
+  // Sincroniza periodicamente o histórico da planilha. Isso garante que o
+  // histórico seja atualizado mesmo quando diferentes usuárias estiverem
+  // utilizando o sistema em máquinas distintas. A cada 30 segundos, uma
+  // solicitação doGet é realizada e o localStorage atualizado. A variável
+  // global previne múltiplas instâncias do temporizador.
+  if (!window.historySyncInterval) {
+    window.historySyncInterval = setInterval(() => {
+      loadHistoryFromSheet();
+    }, 30000);
+  }
 }
 
 // Avança para a próxima vendedora na fila
@@ -175,6 +189,19 @@ function registerAtendimento(queue) {
   form.reset();
   // Atualiza a tabela
   renderHistory(queue);
+
+  // Após registrar, avança automaticamente para a próxima vendedora
+  advanceQueue(queue);
+
+  // Envia o registro para a planilha via Apps Script
+  saveToSheet(queue, atendimento);
+
+  // Recarrega o histórico após alguns segundos para garantir que o
+  // registro gravado apareça para todas as usuárias. O atraso concede
+  // tempo para que o Apps Script processe a gravação.
+  setTimeout(() => {
+    loadHistoryFromSheet();
+  }, 2000);
 }
 
 // Renderiza a tabela de histórico da fila
@@ -204,4 +231,87 @@ function formatDate(date) {
   const hours = String(date.getHours()).padStart(2, '0');
   const minutes = String(date.getMinutes()).padStart(2, '0');
   return `${day}/${month}/${year} ${hours}:${minutes}`;
+}
+
+// URL do Apps Script implantado (substitua pela URL apropriada)
+const scriptURL =
+  'https://script.google.com/macros/s/AKfycbxJz3E6oQWX7eMPOha4cwcJ6RSLgTUZzEcDmSZB8D4Nwka5q-3TGd1Z46pMgKHFuaGV/exec';
+
+/**
+ * Envia os dados de atendimento para a planilha Google através do Apps Script.
+ * O corpo da requisição inclui a fila para que o script possa diferenciar
+ * entre WhatsApp e Site. A opção `no-cors` é usada para contornar restrições
+ * de CORS — embora a resposta seja opaca, isso não interfere na gravação.
+ * @param {string} queue - identifica a fila (whatsapp ou site)
+ * @param {Object} atendimento - dados do atendimento (dataHora, vendedora,
+ *   cliente, contato, observacao)
+ */
+function saveToSheet(queue, atendimento) {
+  const payload = {
+    fila: queue,
+    dataHora: atendimento.dataHora,
+    vendedora: atendimento.vendedora,
+    cliente: atendimento.cliente,
+    contato: atendimento.contato,
+    observacao: atendimento.observacao,
+  };
+  if (!scriptURL || scriptURL.startsWith('COLE_AQUI')) return;
+  fetch(scriptURL, {
+    method: 'POST',
+    mode: 'no-cors',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(payload),
+  }).catch((err) => console.error('Erro ao enviar dados para a planilha', err));
+}
+
+/**
+ * Recupera os dados da planilha Google via método GET do Apps Script. Os
+ * dados retornados são uma lista de objetos representando cada linha da
+ * planilha. Essa função atualiza o localStorage para ambas as filas e
+ * re-renderiza o histórico. Se a planilha não estiver configurada ou se
+ * houver algum erro, a chamada é ignorada.
+ */
+function loadHistoryFromSheet() {
+  if (!scriptURL || scriptURL.startsWith('COLE_AQUI')) return;
+  const url = scriptURL + '?action=get';
+  fetch(url)
+    .then((response) => {
+      const contentType = response.headers.get('content-type') || '';
+      if (contentType.includes('application/json')) {
+        return response.json();
+      }
+      return response.text().then((text) => {
+        try {
+          return JSON.parse(text);
+        } catch (e) {
+          throw new Error('Resposta inesperada ao carregar histórico');
+        }
+      });
+    })
+    .then((data) => {
+      if (!Array.isArray(data)) return;
+      const whatsHistory = [];
+      const siteHistory = [];
+      data.forEach((item) => {
+        const fila = item.Fila || item.fila || '';
+        const registro = {
+          dataHora: item['Data/Hora'] || item.dataHora || '',
+          vendedora: item.Vendedora || item.vendedora || '',
+          cliente: item.Cliente || item.cliente || '',
+          contato: item.Contato || item.contato || '',
+          observacao: item['Observação'] || item.observacao || '',
+        };
+        if (fila === 'whatsapp') {
+          whatsHistory.push(registro);
+        } else if (fila === 'site') {
+          siteHistory.push(registro);
+        }
+      });
+      // Atualiza o armazenamento local e a visualização
+      localStorage.setItem('whatsappHistory', JSON.stringify(whatsHistory));
+      localStorage.setItem('siteHistory', JSON.stringify(siteHistory));
+      renderHistory('whatsapp');
+      renderHistory('site');
+    })
+    .catch((err) => console.error('Erro ao carregar histórico da planilha', err));
 }
