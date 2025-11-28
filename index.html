@@ -21,7 +21,7 @@
       <header>
         <h1>Sistema de Fila de Vendas</h1>
         <div style="display: flex; align-items: center; gap: 10px;">
-            <span id="loading-indicator" style="font-size: 12px; color: #fff; display: none;">Sincronizando...</span>
+            <span id="status-indicator" style="font-size: 12px; color: #ffd700; display: none;">Carregando...</span>
             <button id="logout-button" class="logout-button">Sair</button>
         </div>
       </header>
@@ -30,7 +30,7 @@
           <h2>Fila WhatsApp</h2>
           <div class="current-turn">
             <span class="label">Vez da vendedora:</span>
-            <span id="whatsapp-current" class="current-name">...</span>
+            <span id="whatsapp-current" class="current-name">Dani</span>
           </div>
           <button class="next-button" data-queue="whatsapp">Pular vez (Sem Venda)</button>
 
@@ -64,7 +64,7 @@
           <h2>Fila de Clientes do Site</h2>
           <div class="current-turn">
             <span class="label">Vez da vendedora:</span>
-            <span id="site-current" class="current-name">...</span>
+            <span id="site-current" class="current-name">Dani</span>
           </div>
           <button class="next-button" data-queue="site">Pular vez (Sem Venda)</button>
 
@@ -97,30 +97,27 @@
     </div>
 
     <script>
-      // CONFIGURAÇÃO
-      // ---------------------------------------------------------
-      // SEU LINK NOVO JÁ ESTÁ AQUI:
+      // =========================================================
+      // COLOQUE AQUI A URL DO SEU SCRIPT (VERIFIQUE PASSO 1)
       const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbxtaofLwaa2pEW24Epl5XoC93osJhn3PGv-mQNBRdMD4aTYwswFDZwbfOnHpho07UMhEg/exec"; 
-      // ---------------------------------------------------------
+      // =========================================================
 
       const vendedoras = ["Dani", "Talita", "Renata"];
       const PASSWORD = "equipedevendas";
       
-      // Estado Global (agora vem da planilha)
       let globalState = {
         whatsappIndex: 0,
         siteIndex: 0,
         history: []
       };
 
-      // Elementos DOM
       const els = {
         loginScreen: document.getElementById("login-screen"),
         appScreen: document.getElementById("app-screen"),
         passwordInput: document.getElementById("password-input"),
         loginBtn: document.getElementById("login-button"),
         errorMsg: document.getElementById("login-error"),
-        loading: document.getElementById("loading-indicator"),
+        status: document.getElementById("status-indicator"),
         queues: {
           whatsapp: {
             current: document.getElementById("whatsapp-current"),
@@ -147,12 +144,10 @@
           location.reload();
         });
 
-        // Botões de Pular (Next)
         document.querySelectorAll(".next-button").forEach(btn => {
           btn.addEventListener("click", () => sendData(btn.dataset.queue, 'next', {}));
         });
 
-        // Formulários
         Object.keys(els.queues).forEach(q => {
           els.queues[q].form.addEventListener("submit", (e) => {
             e.preventDefault();
@@ -167,7 +162,9 @@
           });
         });
         
-        // Sincronização automática a cada 5 segundos
+        // Atualiza interface inicial
+        updateUI();
+        // Sincroniza a cada 5 segundos
         setInterval(fetchData, 5000);
       });
 
@@ -188,71 +185,77 @@
       function showApp() {
         els.loginScreen.classList.add("hidden");
         els.appScreen.classList.remove("hidden");
-        fetchData(); // Busca dados iniciais
+        fetchData(); 
       }
 
-      // Função Principal de Leitura (GET)
       async function fetchData() {
-        if (!SCRIPT_URL || SCRIPT_URL.includes("COLOQUE")) return;
-        els.loading.style.display = 'block';
+        if (!SCRIPT_URL) return;
         
         try {
           const res = await fetch(SCRIPT_URL);
+          if (!res.ok) throw new Error("Erro na rede");
+          
           const data = await res.json();
           
-          // Atualiza estado global
-          globalState.whatsappIndex = parseInt(data.state.whatsappIndex);
-          globalState.siteIndex = parseInt(data.state.siteIndex);
-          globalState.history = data.history;
+          // Se tiver erro no JSON
+          if(data.result === "Error") {
+             console.error("Erro no script:", data.error);
+             return;
+          }
 
+          globalState.whatsappIndex = parseInt(data.state.whatsappIndex) || 0;
+          globalState.siteIndex = parseInt(data.state.siteIndex) || 0;
+          globalState.history = data.history || [];
+          
+          els.status.style.display = 'none'; // Esconde carregando se deu certo
           updateUI();
         } catch (e) {
           console.error("Erro ao sincronizar:", e);
-        } finally {
-          els.loading.style.display = 'none';
+          els.status.textContent = "Erro de conexão";
+          els.status.style.display = 'block';
+          els.status.style.color = 'red';
         }
       }
 
-      // Função Principal de Escrita (POST)
       async function sendData(queueType, action, formData) {
         if (!SCRIPT_URL) return;
-        els.loading.style.display = 'block';
-        els.loading.textContent = "Salvando...";
+        
+        els.status.style.display = 'block';
+        els.status.style.color = '#fff';
+        els.status.textContent = "Salvando...";
 
         const payload = {
-          action: action, // 'register' ou 'next'
+          action: action, 
           fila: queueType,
           vendedora: getCurrentVendor(queueType),
           dataHora: new Date().toLocaleString('pt-BR'),
           ...formData
         };
 
-        // Otimista: Já atualiza a interface antes de voltar do servidor
-        // para parecer instantâneo para quem clicou
+        // Atualização Otimista (Muda na tela antes de ir pro servidor)
         advanceQueueLocally(queueType);
 
         try {
-            // Usamos mode: 'no-cors' para evitar erro, mas isso significa que não lemos a resposta
-            // Porém, como temos o "setInterval", os dados serão corrigidos em 5s se houver erro
             await fetch(SCRIPT_URL, {
-            method: 'POST',
-            mode: 'no-cors',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(payload)
+              method: 'POST',
+              mode: 'no-cors', // Importante para enviar sem erro de bloqueio
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify(payload)
             });
             
-            // Força uma atualização real após 1 segundo
-            setTimeout(fetchData, 1000);
+            setTimeout(fetchData, 1500); // Força atualização após salvar
+            els.status.textContent = "Salvo!";
+            setTimeout(() => els.status.style.display = 'none', 2000);
 
         } catch (e) {
-            alert("Erro ao salvar. Verifique sua conexão.");
-            fetchData(); // Reverte mudanças locais se falhar
+            alert("Erro ao salvar. Verifique se a planilha está acessível.");
+            fetchData(); // Reverte se der erro
         }
       }
 
       function getCurrentVendor(queueType) {
         const idx = queueType === 'whatsapp' ? globalState.whatsappIndex : globalState.siteIndex;
-        return vendedoras[idx];
+        return vendedoras[idx] || vendedoras[0];
       }
 
       function advanceQueueLocally(queueType) {
@@ -271,11 +274,13 @@
       }
 
       function renderQueueSection(queue, currentIndex) {
+        if (isNaN(currentIndex)) currentIndex = 0;
         const qEls = els.queues[queue];
-        // Vendedora Atual
-        qEls.current.textContent = vendedoras[currentIndex];
         
-        // Lista
+        // Proteção contra índice inválido
+        const nomeVendedora = vendedoras[currentIndex] || vendedoras[0];
+        qEls.current.textContent = nomeVendedora;
+        
         qEls.list.innerHTML = '';
         vendedoras.forEach((nome, idx) => {
           const li = document.createElement("li");
@@ -286,15 +291,13 @@
       }
 
       function renderHistoryTables() {
-        // Limpa tabelas
         els.queues.whatsapp.tbody.innerHTML = '';
         els.queues.site.tbody.innerHTML = '';
 
-        // Preenche com dados vindos da planilha
+        if (!globalState.history) return;
+
         globalState.history.forEach(item => {
-            // Verifica se o item pertence à fila (tratamento de string case-insensitive)
             const filaItem = (item.fila || '').toLowerCase();
-            
             let targetBody = null;
             if (filaItem === 'whatsapp') targetBody = els.queues.whatsapp.tbody;
             if (filaItem === 'site') targetBody = els.queues.site.tbody;
@@ -308,7 +311,6 @@
                     <td>${item.contato}</td>
                     <td>${item.observacao}</td>
                 `;
-                // Insere no final (append) pois o array já veio invertido do script
                 targetBody.appendChild(tr); 
             }
         });
