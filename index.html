@@ -7,37 +7,32 @@
     <link rel="stylesheet" href="style.css" />
   </head>
   <body>
-    <!-- Tela de Login -->
     <div id="login-screen" class="screen">
       <div class="login-container">
         <h1>Bem-vinda</h1>
         <p>Digite a senha para acessar o sistema:</p>
-        <input
-          type="password"
-          id="password-input"
-          placeholder="Senha"
-          autocomplete="off"
-        />
+        <input type="password" id="password-input" placeholder="Senha" autocomplete="off" />
         <button id="login-button">Entrar</button>
         <div id="login-error" class="error"></div>
       </div>
     </div>
 
-    <!-- Tela Principal -->
     <div id="app-screen" class="screen hidden">
       <header>
         <h1>Sistema de Fila de Vendas</h1>
-        <button id="logout-button" class="logout-button">Sair</button>
+        <div style="display: flex; align-items: center; gap: 10px;">
+            <span id="loading-indicator" style="font-size: 12px; color: #fff; display: none;">Sincronizando...</span>
+            <button id="logout-button" class="logout-button">Sair</button>
+        </div>
       </header>
       <main>
-        <!-- Fila de WhatsApp -->
         <section class="queue-section" id="whatsapp-queue">
           <h2>Fila WhatsApp</h2>
           <div class="current-turn">
             <span class="label">Vez da vendedora:</span>
-            <span id="whatsapp-current" class="current-name"></span>
+            <span id="whatsapp-current" class="current-name">...</span>
           </div>
-          <button class="next-button" data-queue="whatsapp">Próximo</button>
+          <button class="next-button" data-queue="whatsapp">Pular vez (Sem Venda)</button>
 
           <div class="order-list">
             <h3>Ordem das vendedoras</h3>
@@ -47,43 +42,31 @@
           <div class="register-form">
             <h3>Registrar atendimento</h3>
             <form id="whatsapp-form">
-              <label for="cliente-whatsapp">Nome do cliente</label>
-              <input type="text" id="cliente-whatsapp" name="cliente" required />
+              <label>Nome do cliente</label>
+              <input type="text" id="cliente-whatsapp" required />
 
-              <label for="contato-whatsapp">Contato</label>
-              <input type="text" id="contato-whatsapp" name="contato" required />
+              <label>Contato</label>
+              <input type="text" id="contato-whatsapp" required />
 
-              <label for="observacao-whatsapp">Observação</label>
-              <textarea id="observacao-whatsapp" name="observacao" rows="2"></textarea>
-              <button type="submit">Registrar</button>
+              <label>Observação</label>
+              <textarea id="observacao-whatsapp" rows="2"></textarea>
+              <button type="submit">Registrar Venda & Próximo</button>
             </form>
           </div>
 
           <div class="history">
-            <h3>Atendimentos registrados</h3>
-            <table>
-              <thead>
-                <tr>
-                  <th>Data/Hora</th>
-                  <th>Vendedora</th>
-                  <th>Cliente</th>
-                  <th>Contato</th>
-                  <th>Observação</th>
-                </tr>
-              </thead>
-              <tbody id="whatsapp-history"></tbody>
-            </table>
+            <h3>Últimos atendimentos</h3>
+            <tbody id="whatsapp-history"></tbody>
           </div>
         </section>
 
-        <!-- Fila de Clientes do Site -->
         <section class="queue-section" id="site-queue">
           <h2>Fila de Clientes do Site</h2>
           <div class="current-turn">
             <span class="label">Vez da vendedora:</span>
-            <span id="site-current" class="current-name"></span>
+            <span id="site-current" class="current-name">...</span>
           </div>
-          <button class="next-button" data-queue="site">Próximo</button>
+          <button class="next-button" data-queue="site">Pular vez (Sem Venda)</button>
 
           <div class="order-list">
             <h3>Ordem das vendedoras</h3>
@@ -93,353 +76,242 @@
           <div class="register-form">
             <h3>Registrar atendimento</h3>
             <form id="site-form">
-              <label for="cliente-site">Nome do cliente</label>
-              <input type="text" id="cliente-site" name="cliente" required />
+              <label>Nome do cliente</label>
+              <input type="text" id="cliente-site" required />
 
-              <label for="contato-site">Contato</label>
-              <input type="text" id="contato-site" name="contato" required />
+              <label>Contato</label>
+              <input type="text" id="contato-site" required />
 
-              <label for="observacao-site">Observação</label>
-              <textarea id="observacao-site" name="observacao" rows="2"></textarea>
-              <button type="submit">Registrar</button>
+              <label>Observação</label>
+              <textarea id="observacao-site" rows="2"></textarea>
+              <button type="submit">Registrar Venda & Próximo</button>
             </form>
           </div>
 
           <div class="history">
-            <h3>Atendimentos registrados</h3>
-            <table>
-              <thead>
-                <tr>
-                  <th>Data/Hora</th>
-                  <th>Vendedora</th>
-                  <th>Cliente</th>
-                  <th>Contato</th>
-                  <th>Observação</th>
-                </tr>
-              </thead>
-              <tbody id="site-history"></tbody>
-            </table>
+            <h3>Últimos atendimentos</h3>
+            <tbody id="site-history"></tbody>
           </div>
         </section>
       </main>
     </div>
 
-    <!-- Script incorporado para evitar problemas de cache -->
     <script>
-      // Nome das vendedoras em ordem (Dani, Talita, Renata)
+      // CONFIGURAÇÃO
+      // ---------------------------------------------------------
+      // COLOQUE AQUI A NOVA URL DO SEU SCRIPT DO GOOGLE (PASSO 2)
+      const SCRIPT_URL = "COLOQUE_SUA_URL_DO_APPS_SCRIPT_AQUI"; 
+      // ---------------------------------------------------------
+
       const vendedoras = ["Dani", "Talita", "Renata"];
-
-      // Senha de acesso
       const PASSWORD = "equipedevendas";
-
-      // Elementos DOM
-      const loginScreen = document.getElementById("login-screen");
-      const appScreen = document.getElementById("app-screen");
-      const passwordInput = document.getElementById("password-input");
-      const loginButton = document.getElementById("login-button");
-      const loginError = document.getElementById("login-error");
-      const logoutButton = document.getElementById("logout-button");
-
-      // Queue elements
-      const queueElements = {
-        whatsapp: {
-          current: document.getElementById("whatsapp-current"),
-          orderList: document.getElementById("whatsapp-order"),
-          historyBody: document.getElementById("whatsapp-history"),
-          form: document.getElementById("whatsapp-form"),
-        },
-        site: {
-          current: document.getElementById("site-current"),
-          orderList: document.getElementById("site-order"),
-          historyBody: document.getElementById("site-history"),
-          form: document.getElementById("site-form"),
-        },
+      
+      // Estado Global (agora vem da planilha)
+      let globalState = {
+        whatsappIndex: 0,
+        siteIndex: 0,
+        history: []
       };
 
-      // Inicialização
-      document.addEventListener("DOMContentLoaded", () => {
-        // Verifica se o usuário já está logado
-        if (localStorage.getItem("loggedIn") === "true") {
-          showApp();
-        } else {
-          showLogin();
-        }
-
-        // Eventos de login
-        loginButton.addEventListener("click", handleLogin);
-        passwordInput.addEventListener("keypress", (e) => {
-          if (e.key === "Enter") {
-            handleLogin();
+      // Elementos DOM
+      const els = {
+        loginScreen: document.getElementById("login-screen"),
+        appScreen: document.getElementById("app-screen"),
+        passwordInput: document.getElementById("password-input"),
+        loginBtn: document.getElementById("login-button"),
+        errorMsg: document.getElementById("login-error"),
+        loading: document.getElementById("loading-indicator"),
+        queues: {
+          whatsapp: {
+            current: document.getElementById("whatsapp-current"),
+            list: document.getElementById("whatsapp-order"),
+            tbody: document.getElementById("whatsapp-history"),
+            form: document.getElementById("whatsapp-form")
+          },
+          site: {
+            current: document.getElementById("site-current"),
+            list: document.getElementById("site-order"),
+            tbody: document.getElementById("site-history"),
+            form: document.getElementById("site-form")
           }
-        });
+        }
+      };
 
-        // Evento de logout
-        logoutButton.addEventListener("click", () => {
+      document.addEventListener("DOMContentLoaded", () => {
+        if (localStorage.getItem("loggedIn") === "true") showApp();
+        else showLogin();
+
+        els.loginBtn.addEventListener("click", handleLogin);
+        document.getElementById("logout-button").addEventListener("click", () => {
           localStorage.removeItem("loggedIn");
           location.reload();
         });
 
-        // Eventos das filas
-        document.querySelectorAll(".next-button").forEach((btn) => {
-          btn.addEventListener("click", () => {
-            const queue = btn.dataset.queue;
-            advanceQueue(queue);
-          });
+        // Botões de Pular (Next)
+        document.querySelectorAll(".next-button").forEach(btn => {
+          btn.addEventListener("click", () => sendData(btn.dataset.queue, 'next', {}));
         });
 
-        // Eventos dos formulários
-        Object.keys(queueElements).forEach((queue) => {
-          const form = queueElements[queue].form;
-          form.addEventListener("submit", (e) => {
+        // Formulários
+        Object.keys(els.queues).forEach(q => {
+          els.queues[q].form.addEventListener("submit", (e) => {
             e.preventDefault();
-            registerAtendimento(queue);
+            const prefix = q === 'whatsapp' ? '-whatsapp' : '-site';
+            const data = {
+              cliente: document.getElementById(`cliente${prefix}`).value,
+              contato: document.getElementById(`contato${prefix}`).value,
+              observacao: document.getElementById(`observacao${prefix}`).value
+            };
+            sendData(q, 'register', data);
+            els.queues[q].form.reset();
           });
         });
+        
+        // Sincronização automática a cada 5 segundos
+        setInterval(fetchData, 5000);
       });
 
       function handleLogin() {
-        const value = passwordInput.value.trim();
-        if (value === PASSWORD) {
+        if (els.passwordInput.value.trim() === PASSWORD) {
           localStorage.setItem("loggedIn", "true");
-          passwordInput.value = "";
-          loginError.textContent = "";
           showApp();
         } else {
-          loginError.textContent = "Senha incorreta. Tente novamente.";
-          passwordInput.value = "";
+          els.errorMsg.textContent = "Senha incorreta.";
         }
       }
 
-      // Exibe a tela de login
       function showLogin() {
-        loginScreen.classList.remove("hidden");
-        appScreen.classList.add("hidden");
+        els.loginScreen.classList.remove("hidden");
+        els.appScreen.classList.add("hidden");
       }
 
-      // Exibe a tela principal e inicializa dados
       function showApp() {
-        loginScreen.classList.add("hidden");
-        appScreen.classList.remove("hidden");
-        initQueues();
+        els.loginScreen.classList.add("hidden");
+        els.appScreen.classList.remove("hidden");
+        fetchData(); // Busca dados iniciais
       }
 
-      // Inicializa as filas (ordem, posição atual e histórico)
-      function initQueues() {
-        // Para cada fila, certifique-se de que existem chaves de índice e histórico
-        ["whatsapp", "site"].forEach((queue) => {
-          if (!localStorage.getItem(`${queue}Index`)) {
-            localStorage.setItem(`${queue}Index`, "0");
-          }
-          if (!localStorage.getItem(`${queue}History`)) {
-            localStorage.setItem(`${queue}History`, JSON.stringify([]));
-          }
-          renderQueue(queue);
-          renderHistory(queue);
-        });
+      // Função Principal de Leitura (GET)
+      async function fetchData() {
+        if (!SCRIPT_URL || SCRIPT_URL.includes("COLOQUE")) return;
+        els.loading.style.display = 'block';
+        
+        try {
+          const res = await fetch(SCRIPT_URL);
+          const data = await res.json();
+          
+          // Atualiza estado global
+          globalState.whatsappIndex = parseInt(data.state.whatsappIndex);
+          globalState.siteIndex = parseInt(data.state.siteIndex);
+          globalState.history = data.history;
 
-        // Carrega o histórico da planilha Google, caso disponível
-        loadHistoryFromSheet();
-
-        // Para manter o histórico sincronizado entre diferentes usuárias, realize
-        // atualizações periódicas da planilha. A cada 30 segundos, buscamos
-        // novamente as entradas da planilha e atualizamos o histórico local. Isso
-        // permite que os registros feitos por uma vendedora apareçam para as
-        // demais sem precisar recarregar a página manualmente.
-        if (!window.historySyncInterval) {
-          window.historySyncInterval = setInterval(() => {
-            loadHistoryFromSheet();
-          }, 30000); // 30.000 ms = 30 segundos
+          updateUI();
+        } catch (e) {
+          console.error("Erro ao sincronizar:", e);
+        } finally {
+          els.loading.style.display = 'none';
         }
       }
 
-      // Avança para a próxima vendedora na fila
-      function advanceQueue(queue) {
-        const indexKey = `${queue}Index`;
-        let currentIndex = parseInt(localStorage.getItem(indexKey), 10);
-        currentIndex = (currentIndex + 1) % vendedoras.length;
-        localStorage.setItem(indexKey, currentIndex.toString());
-        renderQueue(queue);
+      // Função Principal de Escrita (POST)
+      async function sendData(queueType, action, formData) {
+        if (!SCRIPT_URL) return;
+        els.loading.style.display = 'block';
+        els.loading.textContent = "Salvando...";
+
+        const payload = {
+          action: action, // 'register' ou 'next'
+          fila: queueType,
+          vendedora: getCurrentVendor(queueType),
+          dataHora: new Date().toLocaleString('pt-BR'),
+          ...formData
+        };
+
+        // Otimista: Já atualiza a interface antes de voltar do servidor
+        // para parecer instantâneo para quem clicou
+        advanceQueueLocally(queueType);
+
+        try {
+            // Usamos mode: 'no-cors' para evitar erro, mas isso significa que não lemos a resposta
+            // Porém, como temos o "setInterval", os dados serão corrigidos em 5s se houver erro
+            await fetch(SCRIPT_URL, {
+            method: 'POST',
+            mode: 'no-cors',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload)
+            });
+            
+            // Força uma atualização real após 1 segundo
+            setTimeout(fetchData, 1000);
+
+        } catch (e) {
+            alert("Erro ao salvar. Verifique sua conexão.");
+            fetchData(); // Reverte mudanças locais se falhar
+        }
       }
 
-      // Renderiza o estado atual da fila (vendedora da vez e ordem)
-      function renderQueue(queue) {
-        const currentIndex = parseInt(localStorage.getItem(`${queue}Index`), 10);
-        const elements = queueElements[queue];
-        // Atualiza a vendedora da vez
-        elements.current.textContent = vendedoras[currentIndex];
-        // Renderiza a lista com destaque para a atual
-        elements.orderList.innerHTML = "";
+      function getCurrentVendor(queueType) {
+        const idx = queueType === 'whatsapp' ? globalState.whatsappIndex : globalState.siteIndex;
+        return vendedoras[idx];
+      }
+
+      function advanceQueueLocally(queueType) {
+         if (queueType === 'whatsapp') {
+             globalState.whatsappIndex = (globalState.whatsappIndex + 1) % 3;
+         } else {
+             globalState.siteIndex = (globalState.siteIndex + 1) % 3;
+         }
+         updateUI();
+      }
+
+      function updateUI() {
+        renderQueueSection('whatsapp', globalState.whatsappIndex);
+        renderQueueSection('site', globalState.siteIndex);
+        renderHistoryTables();
+      }
+
+      function renderQueueSection(queue, currentIndex) {
+        const qEls = els.queues[queue];
+        // Vendedora Atual
+        qEls.current.textContent = vendedoras[currentIndex];
+        
+        // Lista
+        qEls.list.innerHTML = '';
         vendedoras.forEach((nome, idx) => {
           const li = document.createElement("li");
           li.textContent = nome;
-          if (idx === currentIndex) {
-            li.classList.add("current");
-          }
-          elements.orderList.appendChild(li);
+          if (idx === currentIndex) li.classList.add("current");
+          qEls.list.appendChild(li);
         });
       }
 
-      // Registra um atendimento e salva no histórico da fila
-      function registerAtendimento(queue) {
-        const index = parseInt(localStorage.getItem(`${queue}Index`), 10);
-        const vendedora = vendedoras[index];
-        // Recupere os valores dos campos a partir de IDs exclusivos para cada fila.
-        let cliente = '';
-        let contato = '';
-        let observacao = '';
-        if (queue === 'whatsapp') {
-          cliente = (document.getElementById('cliente-whatsapp').value || '').trim();
-          contato = (document.getElementById('contato-whatsapp').value || '').trim();
-          observacao = (document.getElementById('observacao-whatsapp').value || '').trim();
-        } else if (queue === 'site') {
-          cliente = (document.getElementById('cliente-site').value || '').trim();
-          contato = (document.getElementById('contato-site').value || '').trim();
-          observacao = (document.getElementById('observacao-site').value || '').trim();
-        }
-        const dataHora = formatDate(new Date());
-        // Cria o objeto do atendimento
-        const atendimento = {
-          dataHora,
-          vendedora,
-          cliente,
-          contato,
-          observacao,
-        };
-        // Recupera histórico, adiciona e salva
-        const historyKey = `${queue}History`;
-        const history = JSON.parse(localStorage.getItem(historyKey));
-        history.unshift(atendimento); // adiciona no início
-        localStorage.setItem(historyKey, JSON.stringify(history));
-        // Limpa o formulário
-        queueElements[queue].form.reset();
-        // Atualiza a tabela
-        renderHistory(queue);
-        // Após registrar, avança automaticamente para a próxima vendedora
-        advanceQueue(queue);
+      function renderHistoryTables() {
+        // Limpa tabelas
+        els.queues.whatsapp.tbody.innerHTML = '';
+        els.queues.site.tbody.innerHTML = '';
 
-        // Envia os dados para a planilha do Google via Apps Script
-        saveToSheet(queue, atendimento);
+        // Preenche com dados vindos da planilha
+        globalState.history.forEach(item => {
+            // Verifica se o item pertence à fila (tratamento de string case-insensitive)
+            const filaItem = (item.fila || '').toLowerCase();
+            
+            let targetBody = null;
+            if (filaItem === 'whatsapp') targetBody = els.queues.whatsapp.tbody;
+            if (filaItem === 'site') targetBody = els.queues.site.tbody;
 
-        // Recarrega o histórico da planilha para refletir imediatamente os
-        // registros adicionados (especialmente importante quando várias
-        // usuárias estão usando o sistema). Como o método de escrita no
-        // Google Apps Script é assíncrono, podemos aguardar alguns segundos
-        // antes de solicitar a atualização. Use um pequeno atraso para dar
-        // tempo ao serviço remoto para salvar os dados.
-        setTimeout(() => {
-          loadHistoryFromSheet();
-        }, 2000);
-      }
-
-      // Renderiza a tabela de histórico da fila
-      function renderHistory(queue) {
-        const historyKey = `${queue}History`;
-        const history = JSON.parse(localStorage.getItem(historyKey));
-        const tbody = queueElements[queue].historyBody;
-        tbody.innerHTML = "";
-        history.forEach((item) => {
-          const tr = document.createElement("tr");
-          tr.innerHTML = `
-            <td>${item.dataHora}</td>
-            <td>${item.vendedora}</td>
-            <td>${item.cliente}</td>
-            <td>${item.contato}</td>
-            <td>${item.observacao || ""}</td>
-          `;
-          tbody.appendChild(tr);
-        });
-      }
-
-      // URL do script do Google Apps Script (substitua pela URL do seu script implantado)
-      // URL do Apps Script implantado fornecido pelo usuário
-      const scriptURL = 'https://script.google.com/macros/s/AKfycbw8qfhJKKt4vYdFoUHUn0AVqTl9KVDrLRqF5xzYLGFYqSRslDcMXraAoGb6ekR4R6nR/exec';
-
-      // Envia os atendimentos para a planilha Google via fetch
-      function saveToSheet(queue, atendimento) {
-        // Inclui a fila no payload para identificar qual fila (whatsapp ou site)
-        const payload = {
-          fila: queue,
-          dataHora: atendimento.dataHora,
-          vendedora: atendimento.vendedora,
-          cliente: atendimento.cliente,
-          contato: atendimento.contato,
-          observacao: atendimento.observacao,
-        };
-        if (!scriptURL || scriptURL.startsWith('COLE_AQUI')) {
-          // Se a URL não foi configurada, não envia
-          return;
-        }
-        fetch(scriptURL, {
-          method: 'POST',
-          mode: 'no-cors',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(payload),
-        }).catch((err) => {
-          console.error('Erro ao enviar dados para a planilha', err);
-        });
-      }
-
-      // Carrega as informações do histórico a partir da planilha (doGet)
-      function loadHistoryFromSheet() {
-        if (!scriptURL || scriptURL.startsWith('COLE_AQUI')) {
-          return;
-        }
-        // Adiciona parâmetro action=get para acionar o doGet que retorna JSON
-        const url = scriptURL + '?action=get';
-        fetch(url)
-          .then((response) => {
-            // Verifica se a resposta é JSON
-            const contentType = response.headers.get('content-type') || '';
-            if (contentType.includes('application/json')) {
-              return response.json();
+            if (targetBody) {
+                const tr = document.createElement("tr");
+                tr.innerHTML = `
+                    <td>${item.datahora}</td>
+                    <td>${item.vendedora}</td>
+                    <td>${item.cliente}</td>
+                    <td>${item.contato}</td>
+                    <td>${item.observacao}</td>
+                `;
+                // Insere no final (append) pois o array já veio invertido do script
+                targetBody.appendChild(tr); 
             }
-            return response.text().then((text) => {
-              try {
-                return JSON.parse(text);
-              } catch (e) {
-                throw new Error('Resposta inesperada do script');
-              }
-            });
-          })
-          .then((data) => {
-            if (!Array.isArray(data)) return;
-            const whatsHistory = [];
-            const siteHistory = [];
-            data.forEach((item) => {
-              // Normaliza chaves; alguns idiomas criam colunas com nomes diferentes
-              const fila = item.Fila || item.fila || '';
-              const registro = {
-                dataHora: item["Data/Hora"] || item.dataHora || '',
-                vendedora: item.Vendedora || item.vendedora || '',
-                cliente: item.Cliente || item.cliente || '',
-                contato: item.Contato || item.contato || '',
-                observacao: item["Observação"] || item.observacao || '',
-              };
-              if (fila === 'whatsapp') {
-                whatsHistory.push(registro);
-              } else if (fila === 'site') {
-                siteHistory.push(registro);
-              }
-            });
-            // Atualiza localStorage e renderiza
-            localStorage.setItem('whatsappHistory', JSON.stringify(whatsHistory));
-            localStorage.setItem('siteHistory', JSON.stringify(siteHistory));
-            renderHistory('whatsapp');
-            renderHistory('site');
-          })
-          .catch((err) => {
-            console.error('Erro ao carregar histórico da planilha', err);
-          });
-      }
-
-      // Formata uma data para DD/MM/YYYY HH:MM
-      function formatDate(date) {
-        const day = String(date.getDate()).padStart(2, '0');
-        const month = String(date.getMonth() + 1).padStart(2, '0');
-        const year = date.getFullYear();
-        const hours = String(date.getHours()).padStart(2, '0');
-        const minutes = String(date.getMinutes()).padStart(2, '0');
-        return `${day}/${month}/${year} ${hours}:${minutes}`;
+        });
       }
     </script>
   </body>
