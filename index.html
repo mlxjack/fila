@@ -236,6 +236,20 @@
           renderQueue(queue);
           renderHistory(queue);
         });
+
+        // Carrega o histórico da planilha Google, caso disponível
+        loadHistoryFromSheet();
+
+        // Para manter o histórico sincronizado entre diferentes usuárias, realize
+        // atualizações periódicas da planilha. A cada 30 segundos, buscamos
+        // novamente as entradas da planilha e atualizamos o histórico local. Isso
+        // permite que os registros feitos por uma vendedora apareçam para as
+        // demais sem precisar recarregar a página manualmente.
+        if (!window.historySyncInterval) {
+          window.historySyncInterval = setInterval(() => {
+            loadHistoryFromSheet();
+          }, 30000); // 30.000 ms = 30 segundos
+        }
       }
 
       // Avança para a próxima vendedora na fila
@@ -305,6 +319,16 @@
 
         // Envia os dados para a planilha do Google via Apps Script
         saveToSheet(queue, atendimento);
+
+        // Recarrega o histórico da planilha para refletir imediatamente os
+        // registros adicionados (especialmente importante quando várias
+        // usuárias estão usando o sistema). Como o método de escrita no
+        // Google Apps Script é assíncrono, podemos aguardar alguns segundos
+        // antes de solicitar a atualização. Use um pequeno atraso para dar
+        // tempo ao serviço remoto para salvar os dados.
+        setTimeout(() => {
+          loadHistoryFromSheet();
+        }, 2000);
       }
 
       // Renderiza a tabela de histórico da fila
@@ -353,6 +377,59 @@
         }).catch((err) => {
           console.error('Erro ao enviar dados para a planilha', err);
         });
+      }
+
+      // Carrega as informações do histórico a partir da planilha (doGet)
+      function loadHistoryFromSheet() {
+        if (!scriptURL || scriptURL.startsWith('COLE_AQUI')) {
+          return;
+        }
+        // Adiciona parâmetro action=get para acionar o doGet que retorna JSON
+        const url = scriptURL + '?action=get';
+        fetch(url)
+          .then((response) => {
+            // Verifica se a resposta é JSON
+            const contentType = response.headers.get('content-type') || '';
+            if (contentType.includes('application/json')) {
+              return response.json();
+            }
+            return response.text().then((text) => {
+              try {
+                return JSON.parse(text);
+              } catch (e) {
+                throw new Error('Resposta inesperada do script');
+              }
+            });
+          })
+          .then((data) => {
+            if (!Array.isArray(data)) return;
+            const whatsHistory = [];
+            const siteHistory = [];
+            data.forEach((item) => {
+              // Normaliza chaves; alguns idiomas criam colunas com nomes diferentes
+              const fila = item.Fila || item.fila || '';
+              const registro = {
+                dataHora: item["Data/Hora"] || item.dataHora || '',
+                vendedora: item.Vendedora || item.vendedora || '',
+                cliente: item.Cliente || item.cliente || '',
+                contato: item.Contato || item.contato || '',
+                observacao: item["Observação"] || item.observacao || '',
+              };
+              if (fila === 'whatsapp') {
+                whatsHistory.push(registro);
+              } else if (fila === 'site') {
+                siteHistory.push(registro);
+              }
+            });
+            // Atualiza localStorage e renderiza
+            localStorage.setItem('whatsappHistory', JSON.stringify(whatsHistory));
+            localStorage.setItem('siteHistory', JSON.stringify(siteHistory));
+            renderHistory('whatsapp');
+            renderHistory('site');
+          })
+          .catch((err) => {
+            console.error('Erro ao carregar histórico da planilha', err);
+          });
       }
 
       // Formata uma data para DD/MM/YYYY HH:MM
