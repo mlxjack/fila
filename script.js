@@ -1,7 +1,7 @@
 // script.js
 
-// Nome das vendedoras em ordem (Dani, Talita, Renata)
-const vendedoras = ["Dani", "Talita", "Renata"];
+// Nome das vendedoras em ordem (Talita, Renata)
+const vendedoras = ["Talita", "Renata"];
 
 // Senha de acesso
 const PASSWORD = "equipedevendas";
@@ -244,7 +244,7 @@ const scriptURL =
  * de CORS — embora a resposta seja opaca, isso não interfere na gravação.
  * @param {string} queue - identifica a fila (whatsapp ou site)
  * @param {Object} atendimento - dados do atendimento (dataHora, vendedora,
- *   cliente, contato, observacao)
+ * cliente, contato, observacao)
  */
 function saveToSheet(queue, atendimento) {
   const payload = {
