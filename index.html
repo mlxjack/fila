@@ -147,7 +147,8 @@
       const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbxbCRpw3P0a113lK0fnVpFmj_WfysRhwhOOwpFTrFZODkBY4Urs7Ykbz8r1YbrRejr3Dg/exec"; 
       // =========================================================
 
-      const vendedoras = ["Dani", "Talita", "Renata"];
+      // Apenas Talita e Renata
+      const vendedoras = ["Talita", "Renata"];
       const PASSWORD = "equipedevendas";
       
       let globalState = {
@@ -301,9 +302,11 @@
 
       function advanceQueueLocally(queueType) {
          if (queueType === 'whatsapp') {
-             globalState.whatsappIndex = (globalState.whatsappIndex + 1) % 3;
+             // Atualizado de 3 para vendedoras.length
+             globalState.whatsappIndex = (globalState.whatsappIndex + 1) % vendedoras.length;
          } else {
-             globalState.siteIndex = (globalState.siteIndex + 1) % 3;
+             // Atualizado de 3 para vendedoras.length
+             globalState.siteIndex = (globalState.siteIndex + 1) % vendedoras.length;
          }
          updateUI();
       }
