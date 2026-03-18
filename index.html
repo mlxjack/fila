@@ -3,7 +3,7 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Sistema de Fila de Vendas</title>
+    <title>Sistema de Fila de Vendas - Chumbada Oficial</title>
     <link rel="stylesheet" href="style.css" />
     <style>
       /* Ajuste extra para garantir que a tabela apareça bonita */
@@ -12,7 +12,7 @@
         border-collapse: collapse;
         background: white;
         overflow: hidden;
-        /* NOVO: Impede que a tabela estique além do limite da caixa */
+        /* Impede que a tabela estique além do limite da caixa */
         table-layout: fixed; 
       }
       th, td {
@@ -20,7 +20,7 @@
         text-align: left;
         border-bottom: 1px solid #eee;
         font-size: 14px;
-        /* NOVO: Quebra palavras muito longas para não empurrar a tela */
+        /* Quebra palavras muito longas para não empurrar a tela */
         word-wrap: break-word; 
       }
       th {
@@ -31,6 +31,7 @@
       td {
         color: #333;
       }
+      
       /* Trava o tamanho do histórico e cria uma barra de rolagem */
       .table-wrapper {
         max-height: 250px;
@@ -47,13 +48,13 @@
         box-shadow: 0 2px 2px -1px rgba(0,0,0,0.1);
       }
 
-      /* =========================================================
-         NOVO: FORÇA AS DUAS FILAS A FICAREM LADO A LADO
-         ========================================================= */
+      /* Força as duas filas a ficarem lado a lado em telas maiores que um celular */
       @media (min-width: 768px) {
         main {
+          display: flex !important;
           flex-wrap: nowrap !important;
           align-items: flex-start !important;
+          gap: 20px;
         }
         .queue-section {
           flex: 1 1 50% !important;
@@ -178,6 +179,7 @@
     </div>
 
     <script>
+      // O seu link de implantação verificado
       const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbxbCRpw3P0a113lK0fnVpFmj_WfysRhwhOOwpFTrFZODkBY4Urs7Ykbz8r1YbrRejr3Dg/exec"; 
 
       const vendedoras = ["Talita", "Renata"];
@@ -189,6 +191,7 @@
         history: []
       };
 
+      // Trava de segurança para impedir a fila de voltar antes da planilha confirmar
       let ultimaAcaoLocal = 0; 
 
       const els = {
@@ -282,6 +285,7 @@
 
           globalState.history = data.history || [];
           
+          // Só atualiza a vez se tiver passado 10 segundos do último clique
           if (Date.now() - ultimaAcaoLocal > 10000) {
             globalState.whatsappIndex = (parseInt(data.state.whatsappIndex) || 0) % vendedoras.length;
             globalState.siteIndex = (parseInt(data.state.siteIndex) || 0) % vendedoras.length;
@@ -317,10 +321,13 @@
         advanceQueueLocally(queueType);
 
         try {
+            // Enviando como texto simples para evitar bloqueios do navegador
             await fetch(SCRIPT_URL, {
               method: 'POST',
               mode: 'no-cors',
-              headers: { 'Content-Type': 'application/json' },
+              headers: {
+                'Content-Type': 'text/plain;charset=utf-8'
+              },
               body: JSON.stringify(payload)
             });
             
@@ -329,7 +336,8 @@
             setTimeout(() => els.status.style.display = 'none', 2000);
 
         } catch (e) {
-            alert("Erro ao salvar. Verifique se a planilha está acessível.");
+            console.error("Erro no envio:", e);
+            alert("Erro ao salvar a vez na planilha.");
             fetchData();
         }
       }
