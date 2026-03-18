@@ -157,6 +157,9 @@
         history: []
       };
 
+      // Adicionado para evitar o bug de sobreposição de vez
+      let ultimaAcaoLocal = 0; 
+
       const els = {
         loginScreen: document.getElementById("login-screen"),
         appScreen: document.getElementById("app-screen"),
@@ -246,9 +249,14 @@
              return;
           }
 
-          globalState.whatsappIndex = parseInt(data.state.whatsappIndex) || 0;
-          globalState.siteIndex = parseInt(data.state.siteIndex) || 0;
           globalState.history = data.history || [];
+          
+          // Correção: Só pega a vez do servidor se faz mais de 10 segundos desde o último clique.
+          // E o "% vendedoras.length" garante que a conta não quebre a dupla.
+          if (Date.now() - ultimaAcaoLocal > 10000) {
+            globalState.whatsappIndex = (parseInt(data.state.whatsappIndex) || 0) % vendedoras.length;
+            globalState.siteIndex = (parseInt(data.state.siteIndex) || 0) % vendedoras.length;
+          }
           
           els.status.style.display = 'none';
           updateUI();
@@ -263,6 +271,9 @@
       async function sendData(queueType, action, formData) {
         if (!SCRIPT_URL) return;
         
+        // Marca o momento da ação para segurar a atualização indevida da tela
+        ultimaAcaoLocal = Date.now(); 
+
         els.status.style.display = 'block';
         els.status.style.color = '#fff';
         els.status.textContent = "Salvando...";
@@ -302,10 +313,8 @@
 
       function advanceQueueLocally(queueType) {
          if (queueType === 'whatsapp') {
-             // Atualizado de 3 para vendedoras.length
              globalState.whatsappIndex = (globalState.whatsappIndex + 1) % vendedoras.length;
          } else {
-             // Atualizado de 3 para vendedoras.length
              globalState.siteIndex = (globalState.siteIndex + 1) % vendedoras.length;
          }
          updateUI();
@@ -346,7 +355,6 @@
             if (filaItem === 'site') targetBody = els.queues.site.tbody;
 
             if (targetBody) {
-                // Formatação simples da data para ficar bonita
                 let displayDate = item.datahora;
                 try {
                     const d = new Date(item.datahora);
