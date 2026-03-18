@@ -10,9 +10,7 @@
       table {
         width: 100%;
         border-collapse: collapse;
-        margin-top: 10px;
         background: white;
-        border-radius: 4px;
         overflow: hidden;
       }
       th, td {
@@ -28,6 +26,21 @@
       }
       td {
         color: #333;
+      }
+      /* NOVO: Trava o tamanho do histórico e cria uma barra de rolagem */
+      .table-wrapper {
+        max-height: 250px;
+        overflow-y: auto;
+        margin-top: 10px;
+        border: 1px solid #eee;
+        border-radius: 4px;
+      }
+      /* Deixa o cabeçalho da tabela fixo enquanto rola os dados */
+      .table-wrapper th {
+        position: sticky;
+        top: 0;
+        z-index: 2;
+        box-shadow: 0 2px 2px -1px rgba(0,0,0,0.1);
       }
     </style>
   </head>
@@ -81,17 +94,19 @@
 
           <div class="history">
             <h3>Últimos atendimentos</h3>
-            <table>
-              <thead>
-                <tr>
-                  <th style="width: 25%">Data</th>
-                  <th style="width: 15%">Vend.</th>
-                  <th style="width: 20%">Cliente</th>
-                  <th style="width: 40%">Obs</th>
-                </tr>
-              </thead>
-              <tbody id="whatsapp-history"></tbody>
-            </table>
+            <div class="table-wrapper">
+              <table>
+                <thead>
+                  <tr>
+                    <th style="width: 25%">Data</th>
+                    <th style="width: 15%">Vend.</th>
+                    <th style="width: 20%">Cliente</th>
+                    <th style="width: 40%">Obs</th>
+                  </tr>
+                </thead>
+                <tbody id="whatsapp-history"></tbody>
+              </table>
+            </div>
           </div>
         </section>
 
@@ -125,29 +140,27 @@
 
           <div class="history">
             <h3>Últimos atendimentos</h3>
-            <table>
-              <thead>
-                <tr>
-                  <th style="width: 25%">Data</th>
-                  <th style="width: 15%">Vend.</th>
-                  <th style="width: 20%">Cliente</th>
-                  <th style="width: 40%">Obs</th>
-                </tr>
-              </thead>
-              <tbody id="site-history"></tbody>
-            </table>
+            <div class="table-wrapper">
+              <table>
+                <thead>
+                  <tr>
+                    <th style="width: 25%">Data</th>
+                    <th style="width: 15%">Vend.</th>
+                    <th style="width: 20%">Cliente</th>
+                    <th style="width: 40%">Obs</th>
+                  </tr>
+                </thead>
+                <tbody id="site-history"></tbody>
+              </table>
+            </div>
           </div>
         </section>
       </main>
     </div>
 
     <script>
-      // =========================================================
-      // IMPORTANTE: MANTENHA O SEU LINK QUE JÁ ESTÁ FUNCIONANDO
       const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbxbCRpw3P0a113lK0fnVpFmj_WfysRhwhOOwpFTrFZODkBY4Urs7Ykbz8r1YbrRejr3Dg/exec"; 
-      // =========================================================
 
-      // Apenas Talita e Renata
       const vendedoras = ["Talita", "Renata"];
       const PASSWORD = "equipedevendas";
       
@@ -157,7 +170,6 @@
         history: []
       };
 
-      // Adicionado para evitar o bug de sobreposição de vez
       let ultimaAcaoLocal = 0; 
 
       const els = {
@@ -251,8 +263,6 @@
 
           globalState.history = data.history || [];
           
-          // Correção: Só pega a vez do servidor se faz mais de 10 segundos desde o último clique.
-          // E o "% vendedoras.length" garante que a conta não quebre a dupla.
           if (Date.now() - ultimaAcaoLocal > 10000) {
             globalState.whatsappIndex = (parseInt(data.state.whatsappIndex) || 0) % vendedoras.length;
             globalState.siteIndex = (parseInt(data.state.siteIndex) || 0) % vendedoras.length;
@@ -271,7 +281,6 @@
       async function sendData(queueType, action, formData) {
         if (!SCRIPT_URL) return;
         
-        // Marca o momento da ação para segurar a atualização indevida da tela
         ultimaAcaoLocal = Date.now(); 
 
         els.status.style.display = 'block';
