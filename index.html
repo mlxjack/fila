@@ -12,12 +12,16 @@
         border-collapse: collapse;
         background: white;
         overflow: hidden;
+        /* NOVO: Impede que a tabela estique além do limite da caixa */
+        table-layout: fixed; 
       }
       th, td {
         padding: 10px;
         text-align: left;
         border-bottom: 1px solid #eee;
         font-size: 14px;
+        /* NOVO: Quebra palavras muito longas para não empurrar a tela */
+        word-wrap: break-word; 
       }
       th {
         background-color: #f4f4f4;
@@ -27,7 +31,7 @@
       td {
         color: #333;
       }
-      /* NOVO: Trava o tamanho do histórico e cria uma barra de rolagem */
+      /* Trava o tamanho do histórico e cria uma barra de rolagem */
       .table-wrapper {
         max-height: 250px;
         overflow-y: auto;
@@ -41,6 +45,21 @@
         top: 0;
         z-index: 2;
         box-shadow: 0 2px 2px -1px rgba(0,0,0,0.1);
+      }
+
+      /* =========================================================
+         NOVO: FORÇA AS DUAS FILAS A FICAREM LADO A LADO
+         ========================================================= */
+      @media (min-width: 768px) {
+        main {
+          flex-wrap: nowrap !important;
+          align-items: flex-start !important;
+        }
+        .queue-section {
+          flex: 1 1 50% !important;
+          max-width: calc(50% - 10px) !important;
+          min-width: 0 !important;
+        }
       }
     </style>
   </head>
