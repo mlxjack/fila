@@ -1,7 +1,7 @@
 // script.js
 
-// Nome das vendedoras em ordem (Talita, Renata, Thauany)
-const vendedoras = ["Talita", "Renata", "Thauany"];
+// Nome das vendedoras em ordem (Talita, Renata)
+const vendedoras = ["Talita", "Renata"];
 
 // Senha de acesso
 const PASSWORD = "equipedevendas";
